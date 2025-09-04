@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Blair SAT Prep Club</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+        }
+        .container {
+            max-width: 400px;
+            margin: auto;
+        }
+        .top-right {
+            position: absolute;
+            top: 20px;
+            right: 40px;
+        }
+        .teacher-tag {
+            color: #2575fc;
+            font-weight: bold;
+        }
+        button, select {
+            margin: 10px 0;
+            padding: 10px 15px;
+            font-size: 16px;
+        }
+        button {
+            margin: 10px 0;
+            padding: 12px 20px;
+            font-size: 16px;
+            background: white;
+            border: 2px solid #2575fc;
+            color: #2575fc;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.15);
+            cursor: pointer;
+            transition: background 0.3s, transform 0.2s;
+        }
+        button:hover {
+            background: #2575fc;
+            color: white;
+            transform: translateY(-2px);
+        }
+        label {
+            display: block;
+            margin-top: 20px;
+        }
+        .question-box {
+            background: #e3f0ff;
+            border-radius: 14px;
+            box-shadow: 0 2px 8px rgba(79, 140, 255, 0.10);
+            padding: 18px;
+            margin-bottom: 18px;
+            border: 2px solid #2575fc;
+            position: relative;
+        }
+        .question-text {
+            font-weight: bold;
+            color: #2575fc;
+            margin-bottom: 10px;
+        }
+        .reply-btn, .submit-reply-btn {
+            background: white;
+            border: 2px solid #38e6b0;
+            color: #38e6b0;
+            border-radius: 8px;
+            padding: 6px 14px;
+            font-size: 14px;
+            cursor: pointer;
+            margin-left: 10px;
+            margin-top: 8px;
+            transition: background 0.3s, color 0.3s;
+        }
+        .reply-btn:hover, .submit-reply-btn:hover {
+            background: #38e6b0;
+            color: white;
+        }
+        .delete-btn:hover {
+            background: #ff4d4d;
+            color: white !important;
+            border-color: #ff4d4d;
+        }
+        .replies-list {
+            list-style: none;
+            padding-left: 0;
+            margin-top: 12px;
+        }
+        .reply-item {
+            background: #f7f7f7;
+            border-radius: 8px;
+            padding: 8px 12px;
+            margin-bottom: 6px;
+            color: #333;
+        }
+        .reply-input {
+            margin-left: 10px;
+            padding: 5px;
+            font-size: 15px;
+            border-radius: 6px;
+            border: 1px solid #2575fc;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="top-right">
+        <button id="signInBtn">Sign in as Teacher</button>
+        <input type="password" id="teacherCodeInput" class="hidden" placeholder="Enter teacher code" style="padding:8px;font-size:15px;border-radius:6px;border:1px solid #2575fc;">
+        <button id="submitCodeBtn" class="hidden">Submit</button>
+        <span id="signedInStatus" class="hidden teacher-tag">Signed in as Teacher</span>
+    </div>
+    <div class="container">
+        <h1>Welcome!</h1>
+        <button onclick="alert('Button 1 clicked!')">Button 1</button>
+        <button onclick="alert('Button 2 clicked!')">Button 2</button>
+        
+        <label for="dropdown1">Choose an option:</label>
+        <select id="dropdown1" onchange="alert('Selected: ' + this.value)">
+            <option value="">--Select--</option>
+            <option value="Option A">Option A</option>
+            <option value="Option B">Option B</option>
+            <option value="Option C">Option C</option>
+        </select>
+
+        <label for="dropdown2">Pick a color:</label>
+        <select id="dropdown2" onchange="document.body.style.backgroundColor = this.value">
+            <option value="">--Select Color--</option>
+            <option value="lightblue">Light Blue</option>
+            <option value="lightgreen">Light Green</option>
+            <option value="lightyellow">Light Yellow</option>
+        </select>
+
+        <label for="questionInput">Ask a question:</label>
+        <input type="text" id="questionInput" placeholder="Type your question here" style="width:100%;padding:10px;font-size:16px;margin:10px 0;">
+        <button onclick="addQuestion()">Submit Question</button>
+
+        <h2>Question Board</h2>
+        <ul id="questionBoard" style="list-style:none;padding:0;"></ul>
+    </div>
+    <script>
+        let isTeacher = false;
+        const TEACHER_CODE = "SAT2025";
+
+        // Teacher sign-in logic
+        const signInBtn = document.getElementById('signInBtn');
+        const teacherCodeInput = document.getElementById('teacherCodeInput');
+        const submitCodeBtn = document.getElementById('submitCodeBtn');
+        const signedInStatus = document.getElementById('signedInStatus');
+
+        signInBtn.addEventListener('click', function() {
+            signInBtn.classList.add('hidden');
+            teacherCodeInput.classList.remove('hidden');
+            submitCodeBtn.classList.remove('hidden');
+        });
+
+        submitCodeBtn.addEventListener('click', function() {
+            if (teacherCodeInput.value === TEACHER_CODE) {
+                isTeacher = true;
+                teacherCodeInput.classList.add('hidden');
+                submitCodeBtn.classList.add('hidden');
+                signedInStatus.classList.remove('hidden');
+                renderQuestions(); // re-render to show delete buttons
+            } else {
+                alert('Incorrect code. Please try again.');
+                teacherCodeInput.value = '';
+            }
+        });
+
+        // Load and render questions
+        async function renderQuestions() {
+            const board = document.getElementById('questionBoard');
+            board.innerHTML = '';
+            const res = await fetch('/api/questions');
+            const questions = await res.json();
+            questions.forEach(q => {
+                const li = document.createElement('li');
+                li.className = 'question-box';
+
+                const questionText = document.createElement('div');
+                questionText.className = 'question-text';
+                questionText.textContent = q.text;
+                li.appendChild(questionText);
+
+                // Delete button for teachers
+                if (isTeacher) {
+                    const delBtn = document.createElement('button');
+                    delBtn.textContent = 'Delete';
+                    delBtn.className = 'reply-btn delete-btn'; // Add delete-btn class
+                    delBtn.style.borderColor = '#ff4d4d';
+                    delBtn.style.color = '#ff4d4d';
+                    delBtn.onclick = async function() {
+                        await fetch(`/api/questions/${q.id}`, { method: 'DELETE' });
+                        renderQuestions();
+                    };
+                    li.appendChild(delBtn);
+                }
+
+                // Reply button
+                const replyBtn = document.createElement('button');
+                replyBtn.textContent = 'Reply';
+                replyBtn.className = 'reply-btn';
+                replyBtn.onclick = function() {
+                    showReplyInput(li, q.id, repliesList);
+                };
+                li.appendChild(replyBtn);
+
+                // Replies list
+                const repliesList = document.createElement('ul');
+                repliesList.className = 'replies-list';
+                q.replies.forEach(r => {
+                    const replyLi = document.createElement('li');
+                    replyLi.className = 'reply-item';
+                    replyLi.textContent = r.text;
+                    if (r.teacher) {
+                        const teacherTag = document.createElement('span');
+                        teacherTag.textContent = ' (Teacher)';
+                        teacherTag.className = 'teacher-tag';
+                        replyLi.appendChild(teacherTag);
+                    }
+                    repliesList.appendChild(replyLi);
+                });
+                li.appendChild(repliesList);
+
+                board.appendChild(li);
+            });
+        }
+
+        // Add a question
+        document.querySelector('button[onclick="addQuestion()"]').onclick = async function() {
+            const input = document.getElementById('questionInput');
+            const question = input.value.trim();
+            if (question) {
+                await fetch('/api/questions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: question })
+                });
+                input.value = '';
+                renderQuestions();
+            }
+        };
+
+        // Show reply input and submit reply
+        function showReplyInput(questionBox, questionId, repliesList) {
+            if (questionBox.querySelector('.reply-input')) return;
+            const replyInput = document.createElement('input');
+            replyInput.type = 'text';
+            replyInput.placeholder = 'Type your reply...';
+            replyInput.className = 'reply-input';
+
+            const submitBtn = document.createElement('button');
+            submitBtn.textContent = 'Submit';
+            submitBtn.className = 'submit-reply-btn';
+            submitBtn.onclick = async function() {
+                const replyText = replyInput.value.trim();
+                if (replyText) {
+                    await fetch(`/api/questions/${questionId}/reply`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ text: replyText, teacher: isTeacher })
+                    });
+                    replyInput.remove();
+                    submitBtn.remove();
+                    renderQuestions();
+                }
+            };
+
+            questionBox.appendChild(replyInput);
+            questionBox.appendChild(submitBtn);
+        }
+
+        // Initial load
+        renderQuestions();
+    </script>
+</body>
